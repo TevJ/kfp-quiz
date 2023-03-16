@@ -9,6 +9,11 @@ data class IncorrectFields(val failures: NonEmptyList<FieldValidationFailure>) :
         "Issues with the following fields: ${failures.joinToString()}"
 }
 
+data class AnsweredQuizDoesNotExist(val id: Long) : DomainError {
+    val message: String =
+        "The quiz you have attempted to answer does not exist, ID: $id"
+}
+
 sealed interface FieldValidationFailure {
     val message: String
 }

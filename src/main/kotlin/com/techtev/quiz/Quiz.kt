@@ -6,6 +6,9 @@ import arrow.core.*
 value class QuizId(val value: Long)
 
 @JvmInline
+value class AnswerResult(val isCorrect: Boolean)
+
+@JvmInline
 value class AnswerIndex(val value: Int) {
     companion object {
         private fun from(value: Int, options: List<String>): Either<FieldValidationFailure, AnswerIndex> =

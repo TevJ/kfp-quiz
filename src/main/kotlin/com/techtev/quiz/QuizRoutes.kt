@@ -31,12 +31,23 @@ data class QuizErrorResponse(
     val errors: List<String>
 )
 
+@Serializable
+data class AnswerQuizRequest(
+    val answers: List<Int>
+)
+
+@Serializable
+data class AnswerQuizResponse(
+    val isCorrect: Boolean
+)
+
 fun quizRoutes(
     quizService: QuizService
 ): List<ContractRoute> =
     listOf(
         createQuizRoute(quizService),
-        getQuizRoute(quizService)
+        getQuizRoute(quizService),
+        answerQuizRoute(quizService)
     )
 
 
@@ -95,6 +106,33 @@ fun getQuizRoute(quizService: QuizService): ContractRoute {
     return spec to ::getQuiz
 }
 
+fun answerQuizRoute(quizService: QuizService): ContractRoute {
+    val answerQuizRequestBody = Body.auto<AnswerQuizRequest>().toLens()
+    val answerQuizResponseBody = Body.auto<AnswerQuizResponse>().toLens()
+    val quizErrorBody = Body.auto<QuizErrorResponse>().toLens()
+
+    val spec = "/quiz" / Path.long().of("id", "Id of quiz to answer") / "answer" meta {
+        summary = "Answer a quiz"
+        receiving(answerQuizRequestBody to answerQuizExampleRequest())
+        returning(Status.OK, answerQuizResponseBody to answerQuizExampleResponse())
+    } bindContract Method.POST
+
+    val answerQuiz: (Long, String) -> HttpHandler = { id: Long, _ ->
+        { request: Request ->
+            val receivedAnswers: AnswerQuizRequest = answerQuizRequestBody(request)
+            quizService.answerQuiz(id, receivedAnswers.answers)
+                .fold(
+                    { it.toResponse(quizErrorBody) },
+                    { answerResult ->
+                        Response(Status.OK)
+                            .with(answerQuizResponseBody of AnswerQuizResponse(answerResult.isCorrect))
+                    }
+                )
+        }
+    }
+    return spec to answerQuiz
+}
+
 private fun Quiz.toQuizResponse(): QuizResponse =
     QuizResponse(
         id = id.value,
@@ -120,15 +158,14 @@ private fun DomainError.toResponse(errorLens: BiDiBodyLens<QuizErrorResponse>): 
                 .with(errorLens of QuizErrorResponse(this.failures.map { it.message }))
         is PersistenceError -> {
             when (this) {
-                is InsertionError ->
-                    Response(Status.INTERNAL_SERVER_ERROR)
-                        .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.e.message.orEmpty())
-
-                is RetrievalError ->
+                is RetrievalError, is InsertionError ->
                     Response(Status.INTERNAL_SERVER_ERROR)
                         .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.e.message.orEmpty())
             }
         }
+        is AnsweredQuizDoesNotExist ->
+            Response(Status.NOT_FOUND)
+                .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.message)
     }
 
 private fun quizExampleRequest() = QuizRequest(
@@ -145,3 +182,7 @@ private fun quizExampleResponse(quizRequest: QuizRequest) = QuizResponse(
     options = quizRequest.options,
     answers = quizRequest.answers
 )
+
+private fun answerQuizExampleRequest() = AnswerQuizRequest(listOf(2))
+
+private fun answerQuizExampleResponse() = AnswerQuizResponse(true)
