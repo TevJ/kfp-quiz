@@ -154,26 +154,6 @@ private fun createQuizResponse(id: Long, quizRequest: QuizRequest): QuizResponse
         answers = quizRequest.answers
     )
 
-fun DomainError.toResponse(errorLens: BiDiBodyLens<ErrorResponse>): Response =
-    when (this) {
-        is IncorrectFields ->
-            Response(Status.BAD_REQUEST)
-                .with(errorLens of ErrorResponse(this.failures.map { it.message }))
-        is PersistenceError -> {
-            when (this) {
-                is RetrievalError, is InsertionError ->
-                    Response(Status.INTERNAL_SERVER_ERROR)
-                        .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.e.message.orEmpty())
-            }
-        }
-        is AnsweredQuizDoesNotExist ->
-            Response(Status.NOT_FOUND)
-                .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.message)
-        is UserAlreadyExists ->
-            Response(Status.BAD_REQUEST)
-                .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.message)
-    }
-
 private fun quizExampleRequest() = QuizRequest(
     title = "Technology quiz",
     text = "Which of the following programming languages runs on the JVM?",
