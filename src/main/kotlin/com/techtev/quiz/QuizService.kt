@@ -9,7 +9,8 @@ interface QuizService {
         title: String,
         question: String,
         answerIndexes: List<Int>,
-        options: List<String>
+        options: List<String>,
+        userEmail: String
     ): Either<DomainError, QuizId>
 
     fun getQuiz(id: Long): Either<PersistenceError, Quiz?>
@@ -18,21 +19,24 @@ interface QuizService {
 }
 
 fun quizService(
-    quizRepository: QuizRepository
+    quizRepository: QuizRepository,
+    userRepository: UserRepository
 ): QuizService = object : QuizService {
     override fun saveQuiz(
         title: String,
         question: String,
         answerIndexes: List<Int>,
-        options: List<String>
+        options: List<String>,
+        userEmail: String
     ): Either<DomainError, QuizId> = either {
+        val user = userRepository.getUserFromEmail(userEmail).bind()
         val validatedQuiz = Either.zipOrAccumulate(
             Title.from(title).toEitherNel(),
             Text.from(question).toEitherNel(),
             AnswerIndex.from(answerIndexes, options),
             Option.from(options)
         ) { title: Title, text: Text, answer: List<AnswerIndex>, options: List<Option> ->
-            Quiz(title = title, text = text, answer = answer, options = options, userId = null)
+            Quiz(title = title, text = text, answer = answer, options = options, userId = user?.id?.id)
         }.mapLeft(::IncorrectFields)
             .bind()
         quizRepository.createNewQuiz(validatedQuiz).bind()

@@ -14,6 +14,7 @@ import org.http4k.core.Status.Companion.BAD_REQUEST
 import org.http4k.filter.ServerFilters
 import org.http4k.format.Jackson
 import org.http4k.format.KotlinxSerialization
+import org.http4k.lens.RequestContextKey
 import org.http4k.lens.string
 import org.http4k.routing.routes
 import org.http4k.server.Jetty
@@ -30,30 +31,39 @@ fun main() {
         SchemaUtils.createMissingTablesAndColumns(QuizTable)
         SchemaUtils.create(UserTable)
     }
-    val userService = userService(userRepository(userPersistence(UserTable)))
+    val userRepository = userRepository(userPersistence(UserTable))
+    val userService = userService(userRepository)
     val userApi = contract {
-        renderer = OpenApi3(ApiInfo("Quiz service", "v1.0"), Jackson)
+        renderer = OpenApi3(ApiInfo("User service", "v1.0"), Jackson)
         descriptionPath = "user"
         routes += userRoutes(userService)
     }
+    val contexts = RequestContexts()
+    val credentialsKey = RequestContextKey.required<Credentials>(contexts)
     val quizApi = contract {
         renderer = OpenApi3(ApiInfo("Quiz service", "v1.0"), Jackson)
-        descriptionPath = "spec"
-        routes += quizRoutes(quizService(quizRepository(quizPersistence(QuizTable))))
-    }.withFilter(ServerFilters.BasicAuth("kfp-quiz") { credentials ->
+        descriptionPath = "quiz"
+        routes += quizRoutes(
+            quizService(quizRepository(quizPersistence(QuizTable)), userRepository),
+            credentialsKey
+        )
+    }.withFilter(ServerFilters.BasicAuth("kfp-quiz", credentialsKey) { credentials ->
         userService.isValidUser(credentials.user, credentials.password)
-            .fold({ false }, { it })
+            .fold({ null }, { credentials })
     })
     val ui = swaggerUi(
         descriptionRoute = Uri.of("spec"),
         title = "Quiz service",
         displayOperationId = true
     )
-    ServerFilters.CatchLensFailure { failure ->
-        Response(BAD_REQUEST).with(
-            Body.string(ContentType.APPLICATION_JSON).toLens() of "{\"message\":${failure.cause?.message.orEmpty()}"
-        )
-    }
+    ServerFilters.InitialiseRequestContext(contexts)
+        .then(
+            ServerFilters.CatchLensFailure { failure ->
+                Response(BAD_REQUEST).with(
+                    Body.string(ContentType.APPLICATION_JSON)
+                        .toLens() of "{\"message\":${failure.cause?.message.orEmpty()}"
+                )
+            })
         .then(routes(quizApi, userApi, ui))
         .asServer(Jetty(port = 8080))
         .start()

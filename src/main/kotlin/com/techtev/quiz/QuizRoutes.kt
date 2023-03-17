@@ -41,17 +41,19 @@ data class AnswerQuizResponse(
 )
 
 fun quizRoutes(
-    quizService: QuizService
+    quizService: QuizService,
+    credentialsKey: RequestContextLens<Credentials>
 ): List<ContractRoute> =
     listOf(
-        createQuizRoute(quizService),
+        createQuizRoute(quizService, credentialsKey),
         getQuizRoute(quizService),
         answerQuizRoute(quizService)
     )
 
 
 fun createQuizRoute(
-    quizService: QuizService
+    quizService: QuizService,
+    credentialsKey: RequestContextLens<Credentials>
 ): ContractRoute {
     val quizRequestBody = Body.auto<QuizRequest>().toLens()
     val quizResponseBody = Body.auto<QuizResponse>().toLens()
@@ -67,11 +69,13 @@ fun createQuizRoute(
 
     val quizHandler: HttpHandler = { request: Request ->
         val receivedQuiz: QuizRequest = quizRequestBody(request)
+        val userCredentials = credentialsKey(request)
         quizService.saveQuiz(
             receivedQuiz.title,
             receivedQuiz.text,
             receivedQuiz.answers,
-            receivedQuiz.options
+            receivedQuiz.options,
+            userCredentials.user
         )
             .fold(
                 { it.toResponse(quizErrorBody) }
