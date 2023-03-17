@@ -7,7 +7,6 @@ import org.http4k.contract.meta
 import org.http4k.core.*
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.*
-import org.http4k.util.Appendable
 
 @Serializable
 data class QuizRequest(
@@ -27,7 +26,7 @@ data class QuizResponse(
 )
 
 @Serializable
-data class QuizErrorResponse(
+data class ErrorResponse(
     val errors: List<String>
 )
 
@@ -56,7 +55,7 @@ fun createQuizRoute(
 ): ContractRoute {
     val quizRequestBody = Body.auto<QuizRequest>().toLens()
     val quizResponseBody = Body.auto<QuizResponse>().toLens()
-    val quizErrorBody = Body.auto<QuizErrorResponse>().toLens()
+    val quizErrorBody = Body.auto<ErrorResponse>().toLens()
     val quizExampleRequest = quizExampleRequest()
     val quizExampleResponse = quizExampleResponse(quizExampleRequest)
 
@@ -85,7 +84,7 @@ fun createQuizRoute(
 
 fun getQuizRoute(quizService: QuizService): ContractRoute {
     val quizResponseBody = Body.auto<QuizResponse>().toLens()
-    val quizErrorBody = Body.auto<QuizErrorResponse>().toLens()
+    val quizErrorBody = Body.auto<ErrorResponse>().toLens()
 
     val spec = "/quiz" / Path.long().of("id", "Id of quiz to get") meta {
         summary = "Gets a quiz"
@@ -109,7 +108,7 @@ fun getQuizRoute(quizService: QuizService): ContractRoute {
 fun answerQuizRoute(quizService: QuizService): ContractRoute {
     val answerQuizRequestBody = Body.auto<AnswerQuizRequest>().toLens()
     val answerQuizResponseBody = Body.auto<AnswerQuizResponse>().toLens()
-    val quizErrorBody = Body.auto<QuizErrorResponse>().toLens()
+    val quizErrorBody = Body.auto<ErrorResponse>().toLens()
 
     val spec = "/quiz" / Path.long().of("id", "Id of quiz to answer") / "answer" meta {
         summary = "Answer a quiz"
@@ -151,11 +150,11 @@ private fun createQuizResponse(id: Long, quizRequest: QuizRequest): QuizResponse
         answers = quizRequest.answers
     )
 
-private fun DomainError.toResponse(errorLens: BiDiBodyLens<QuizErrorResponse>): Response =
+fun DomainError.toResponse(errorLens: BiDiBodyLens<ErrorResponse>): Response =
     when (this) {
         is IncorrectFields ->
             Response(Status.BAD_REQUEST)
-                .with(errorLens of QuizErrorResponse(this.failures.map { it.message }))
+                .with(errorLens of ErrorResponse(this.failures.map { it.message }))
         is PersistenceError -> {
             when (this) {
                 is RetrievalError, is InsertionError ->
@@ -165,6 +164,9 @@ private fun DomainError.toResponse(errorLens: BiDiBodyLens<QuizErrorResponse>): 
         }
         is AnsweredQuizDoesNotExist ->
             Response(Status.NOT_FOUND)
+                .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.message)
+        is UserAlreadyExists ->
+            Response(Status.BAD_REQUEST)
                 .with(Body.string(ContentType.TEXT_PLAIN).toLens() of this.message)
     }
 

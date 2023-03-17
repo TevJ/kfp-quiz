@@ -1,7 +1,10 @@
 package com.techtev.quiz
 
 import com.techtev.quiz.db.QuizTable
+import com.techtev.quiz.db.UserTable
 import com.techtev.quiz.db.quizPersistence
+import com.techtev.quiz.db.userPersistence
+import org.http4k.contract.bind
 import org.http4k.contract.contract
 import org.http4k.contract.openapi.ApiInfo
 import org.http4k.contract.openapi.v3.OpenApi3
@@ -24,13 +27,23 @@ fun main() {
         // print sql to std-out
         addLogger(StdOutSqlLogger)
 
-        SchemaUtils.create(QuizTable)
+        SchemaUtils.createMissingTablesAndColumns(QuizTable)
+        SchemaUtils.create(UserTable)
+    }
+    val userService = userService(userRepository(userPersistence(UserTable)))
+    val userApi = contract {
+        renderer = OpenApi3(ApiInfo("Quiz service", "v1.0"), Jackson)
+        descriptionPath = "user"
+        routes += userRoutes(userService)
     }
     val quizApi = contract {
         renderer = OpenApi3(ApiInfo("Quiz service", "v1.0"), Jackson)
         descriptionPath = "spec"
         routes += quizRoutes(quizService(quizRepository(quizPersistence(QuizTable))))
-    }
+    }.withFilter(ServerFilters.BasicAuth("kfp-quiz") { credentials ->
+        userService.isValidUser(credentials.user, credentials.password)
+            .fold({ false }, { it })
+    })
     val ui = swaggerUi(
         descriptionRoute = Uri.of("spec"),
         title = "Quiz service",
@@ -40,7 +53,8 @@ fun main() {
         Response(BAD_REQUEST).with(
             Body.string(ContentType.APPLICATION_JSON).toLens() of "{\"message\":${failure.cause?.message.orEmpty()}"
         )
-    }.then(routes(quizApi, ui))
+    }
+        .then(routes(quizApi, userApi, ui))
         .asServer(Jetty(port = 8080))
         .start()
 }

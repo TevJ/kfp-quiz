@@ -32,7 +32,7 @@ fun quizService(
             AnswerIndex.from(answerIndexes, options),
             Option.from(options)
         ) { title: Title, text: Text, answer: List<AnswerIndex>, options: List<Option> ->
-            Quiz(title = title, text = text, answer = answer, options = options)
+            Quiz(title = title, text = text, answer = answer, options = options, userId = null)
         }.mapLeft(::IncorrectFields)
             .bind()
         quizRepository.createNewQuiz(validatedQuiz).bind()
@@ -41,10 +41,9 @@ fun quizService(
     override fun getQuiz(id: Long): Either<PersistenceError, Quiz?> =
         quizRepository.getQuiz(QuizId(id))
 
-    override fun answerQuiz(id: Long, answerIndexes: List<Int>) = either {
-        val quiz = ensureNotNull(getQuiz(id).bind()) {
-            AnsweredQuizDoesNotExist(id)
+    override fun answerQuiz(id: Long, answerIndexes: List<Int>): Either<DomainError, AnswerResult> =
+        either {
+            val quiz = ensureNotNull(getQuiz(id).bind()) { AnsweredQuizDoesNotExist(id) }
+            AnswerResult(quiz.answer.map { it.value }.toSet() == answerIndexes.toSet())
         }
-        AnswerResult(quiz.answer.map { it.value }.toSet() == answerIndexes.toSet())
-    }
 }

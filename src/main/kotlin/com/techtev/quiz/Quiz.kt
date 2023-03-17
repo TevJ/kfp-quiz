@@ -56,5 +56,6 @@ data class Quiz(
     val answer: List<AnswerIndex>,
     val title: Title,
     val text: Text,
-    val options: List<Option>
+    val options: List<Option>,
+    val userId: Long?
 )

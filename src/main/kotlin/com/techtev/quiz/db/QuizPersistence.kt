@@ -8,6 +8,7 @@ import com.techtev.quiz.db.QuizTable.id
 import com.techtev.quiz.db.QuizTable.options
 import com.techtev.quiz.db.QuizTable.text
 import com.techtev.quiz.db.QuizTable.title
+import com.techtev.quiz.db.QuizTable.userId
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.Column
@@ -22,6 +23,10 @@ object QuizTable : LongIdTable() {
     val text: Column<String> = text("text")
     val options: Column<String> = text("options")
     val quizId: Column<EntityID<Long>> = id
+    val userId = long("user_id")
+        .uniqueIndex()
+        .references(UserTable.id)
+        .nullable()
 }
 
 interface QuizPersistence {
@@ -59,6 +64,7 @@ fun quizPersistence(quizTable: QuizTable) = object : QuizPersistence {
             title = Title(this[title]),
             text = Text(this[text]),
             answer = this[answer].split(",").map { AnswerIndex(it.toInt()) },
-            options = this[options].split("\\~").map { Option(it) }
+            options = this[options].split("\\~").map { Option(it) },
+            userId = this[userId]
         )
 }
