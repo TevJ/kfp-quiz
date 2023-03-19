@@ -2,7 +2,6 @@ package com.techtev.quiz
 
 import arrow.core.Either
 import arrow.core.raise.either
-import arrow.core.raise.ensureNotNull
 import org.mindrot.jbcrypt.BCrypt
 
 interface UserService {
@@ -31,7 +30,7 @@ fun userService(
                 .bind()
             val existingUser = userRepository.getUserFromEmail(validatedUser.email.value).bind()
             existingUser?.let {
-                raise(UserAlreadyExists(it.email.value))
+                raise(UserAlreadyExists(it.email))
             } ?: userRepository.createUser(validatedUser).bind()
         }
 
