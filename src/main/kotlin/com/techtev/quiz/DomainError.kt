@@ -38,6 +38,12 @@ data class InvalidEmail(val emailAttempt: String) : FieldValidationFailure {
     override val message = "Provided email is not valid: $emailAttempt"
 }
 
+sealed interface PersistenceError : DomainError {
+    val e: Throwable
+}
+data class InsertionError(override val e: Throwable): PersistenceError
+data class RetrievalError(override val e: Throwable): PersistenceError
+
 fun DomainError.toResponse(errorLens: BiDiBodyLens<ErrorResponse>): Response =
     when (this) {
         is IncorrectFields -> Response(BAD_REQUEST)

@@ -87,7 +87,7 @@ private fun QuizApi(
             .fold({ null }, { credentials })
     })
     routes += quizRoutes(
-        quizService(quizRepository(quizPersistence(QuizTable)), userRepository),
+        quizService(quizPersistence(QuizTable), userRepository),
         credentialsKey
     )
 }

@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import arrow.core.toEitherNel
+import com.techtev.quiz.db.QuizPersistence
 
 interface QuizService {
     fun saveQuiz(
@@ -20,8 +21,8 @@ interface QuizService {
 }
 
 fun quizService(
-    quizRepository: QuizRepository,
-    userRepository: UserRepository
+    quizPersistence: QuizPersistence,
+    userRepository: UserRepository,
 ): QuizService = object : QuizService {
     override fun saveQuiz(
         title: String,
@@ -40,11 +41,11 @@ fun quizService(
             Quiz(title = title, text = text, answer = answer, options = options, userId = user?.id?.id)
         }.mapLeft(::IncorrectFields)
             .bind()
-        quizRepository.createNewQuiz(validatedQuiz).bind()
+        quizPersistence.insertQuiz(validatedQuiz).bind()
     }
 
     override fun getQuiz(id: QuizId): Either<PersistenceError, Quiz?> =
-        quizRepository.getQuiz(id)
+        quizPersistence.getQuiz(id)
 
     override fun answerQuiz(id: QuizId, answerIndexes: List<Int>): Either<DomainError, AnswerResult> =
         either {
