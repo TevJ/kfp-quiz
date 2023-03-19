@@ -1,9 +1,6 @@
 package com.techtev.quiz
 
-import com.techtev.quiz.db.QuizTable
-import com.techtev.quiz.db.UserTable
-import com.techtev.quiz.db.quizPersistence
-import com.techtev.quiz.db.userPersistence
+import com.techtev.quiz.db.*
 import org.http4k.contract.contract
 import org.http4k.contract.openapi.ApiInfo
 import org.http4k.contract.openapi.OpenAPIJackson
@@ -47,8 +44,8 @@ private fun Application(): HttpHandler {
         SchemaUtils.create(UserTable)
     }
 
-    val userRepository = userRepository(userPersistence(UserTable))
-    val userService = userService(userRepository)
+    val userPersistence = userPersistence(UserTable)
+    val userService = userService(userPersistence)
     val contexts = RequestContexts()
     val credentialsKey = RequestContextKey.required<Credentials>(contexts)
 
@@ -56,7 +53,7 @@ private fun Application(): HttpHandler {
         .then(HandleErrors())
         .then(
             routes(
-                QuizApi(credentialsKey, userService, userRepository),
+                QuizApi(credentialsKey, userService, userPersistence),
                 UserApi(userService),
                 Swagger()
             )
@@ -78,7 +75,7 @@ private fun UserApi(userService: UserService) = contract {
 private fun QuizApi(
     credentialsKey: RequestContextLens<Credentials>,
     userService: UserService,
-    userRepository: UserRepository
+    userPersistence: UserPersistence
 ) = contract {
     renderer = OpenApi3(ApiInfo("Quiz service", "v1.0"), OpenAPIJackson)
     descriptionPath = "quiz"
@@ -87,7 +84,7 @@ private fun QuizApi(
             .fold({ null }, { credentials })
     })
     routes += quizRoutes(
-        quizService(quizPersistence(QuizTable), userRepository),
+        quizService(quizPersistence(QuizTable), userPersistence),
         credentialsKey
     )
 }

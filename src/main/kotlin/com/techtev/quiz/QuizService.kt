@@ -5,6 +5,7 @@ import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
 import arrow.core.toEitherNel
 import com.techtev.quiz.db.QuizPersistence
+import com.techtev.quiz.db.UserPersistence
 
 interface QuizService {
     fun saveQuiz(
@@ -22,7 +23,7 @@ interface QuizService {
 
 fun quizService(
     quizPersistence: QuizPersistence,
-    userRepository: UserRepository,
+    userPersistence: UserPersistence,
 ): QuizService = object : QuizService {
     override fun saveQuiz(
         title: String,
@@ -31,7 +32,7 @@ fun quizService(
         options: List<String>,
         userEmail: String
     ): Either<DomainError, QuizId> = either {
-        val user = userRepository.getUserFromEmail(userEmail).bind()
+        val user = userPersistence.getUserFromEmail(userEmail).bind()
         val validatedQuiz = Either.zipOrAccumulate(
             Title.from(title).toEitherNel(),
             Text.from(question).toEitherNel(),
