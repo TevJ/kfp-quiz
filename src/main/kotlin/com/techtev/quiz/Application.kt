@@ -11,7 +11,7 @@ import org.http4k.contract.openapi.v3.OpenApi3
 import org.http4k.contract.security.BasicAuthSecurity
 import org.http4k.contract.ui.swaggerUi
 import org.http4k.core.Body
-import org.http4k.core.ContentType
+import org.http4k.core.ContentType.Companion.APPLICATION_JSON
 import org.http4k.core.Credentials
 import org.http4k.core.HttpHandler
 import org.http4k.core.RequestContexts
@@ -94,7 +94,7 @@ private fun QuizApi(
 
 private fun HandleErrors() = ServerFilters.CatchLensFailure { failure ->
     Response(BAD_REQUEST).with(
-        Body.string(ContentType.APPLICATION_JSON)
+        Body.string(APPLICATION_JSON)
             .toLens() of "{\"message\":${failure.cause?.message.orEmpty()}"
     )
 }

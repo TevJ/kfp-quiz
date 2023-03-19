@@ -3,7 +3,13 @@ package com.techtev.quiz
 import kotlinx.serialization.Serializable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.meta
-import org.http4k.core.*
+import org.http4k.core.Body
+import org.http4k.core.HttpHandler
+import org.http4k.core.Method
+import org.http4k.core.Request
+import org.http4k.core.Response
+import org.http4k.core.Status.Companion.OK
+import org.http4k.core.with
 import org.http4k.format.Jackson.auto
 
 @Serializable
@@ -34,7 +40,7 @@ fun registerUserRoute(
     val spec = "/register" meta {
         summary = "Register a new user"
         receiving(registerUserRequestBody to registerUserExampleRequest)
-        returning(Status.OK, registerUserResponseBody to registerUserExampleResponse)
+        returning(OK, registerUserResponseBody to registerUserExampleResponse)
     } bindContract Method.POST
 
     val registerUserHandler: HttpHandler = { request: Request ->
@@ -46,7 +52,7 @@ fun registerUserRoute(
             .fold(
                 { it.toResponse(errorResponseBody) },
                 { id ->
-                    Response(Status.OK)
+                    Response(OK)
                         .with(registerUserResponseBody of RegisterUserResponse(receivedUser.email, id.id))
                 }
             )

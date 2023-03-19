@@ -8,9 +8,11 @@ import org.http4k.core.Body
 import org.http4k.core.Credentials
 import org.http4k.core.HttpHandler
 import org.http4k.core.Method
+import org.http4k.core.Method.POST
 import org.http4k.core.Request
 import org.http4k.core.Response
 import org.http4k.core.Status
+import org.http4k.core.Status.Companion.OK
 import org.http4k.core.with
 import org.http4k.format.KotlinxSerialization.auto
 import org.http4k.lens.Path
@@ -73,8 +75,8 @@ fun createQuizRoute(
     val spec = "/quiz/create" meta {
         summary = "Upload a new quiz"
         receiving(quizRequestBody to quizExampleRequest)
-        returning(Status.OK, quizResponseBody to quizExampleResponse)
-    } bindContract Method.POST
+        returning(OK, quizResponseBody to quizExampleResponse)
+    } bindContract POST
 
     val quizHandler: HttpHandler = { request: Request ->
         val receivedQuiz: QuizRequest = quizRequestBody(request)
@@ -89,7 +91,7 @@ fun createQuizRoute(
             .fold(
                 { it.toResponse(quizErrorBody) }
             ) { id ->
-                Response(Status.OK).with(quizResponseBody of createQuizResponse(id.value, receivedQuiz))
+                Response(OK).with(quizResponseBody of createQuizResponse(id.value, receivedQuiz))
             }
     }
     return spec to quizHandler
@@ -101,7 +103,7 @@ fun getQuizRoute(quizService: QuizService): ContractRoute {
 
     val spec = "/quiz" / Path.long().map(::QuizId).of("id", "Id of quiz to get") meta {
         summary = "Gets a quiz"
-        returning(Status.OK, quizResponseBody to quizExampleResponse(quizExampleRequest()))
+        returning(OK, quizResponseBody to quizExampleResponse(quizExampleRequest()))
     } bindContract Method.GET
 
     fun getQuiz(id: QuizId): HttpHandler = { _ ->
@@ -110,7 +112,7 @@ fun getQuizRoute(quizService: QuizService): ContractRoute {
                 { e -> e.toResponse(quizErrorBody) },
                 { quiz ->
                     quiz?.let {
-                        Response(Status.OK).with(quizResponseBody of it.toQuizResponse())
+                        Response(OK).with(quizResponseBody of it.toQuizResponse())
                     } ?: Response(Status.NOT_FOUND)
                 }
             )
@@ -126,8 +128,8 @@ fun answerQuizRoute(quizService: QuizService): ContractRoute {
     val spec = "/quiz" / Path.long().map(::QuizId).of("id", "Id of quiz to answer") / "answer" meta {
         summary = "Answer a quiz"
         receiving(answerQuizRequestBody to answerQuizExampleRequest())
-        returning(Status.OK, answerQuizResponseBody to answerQuizExampleResponse())
-    } bindContract Method.POST
+        returning(OK, answerQuizResponseBody to answerQuizExampleResponse())
+    } bindContract POST
 
     val answerQuiz: (QuizId, String) -> HttpHandler = { id: QuizId, _ ->
         { request: Request ->
@@ -136,7 +138,7 @@ fun answerQuizRoute(quizService: QuizService): ContractRoute {
                 .fold(
                     { it.toResponse(quizErrorBody) },
                     { answerResult ->
-                        Response(Status.OK)
+                        Response(OK)
                             .with(answerQuizResponseBody of AnswerQuizResponse(answerResult.isCorrect))
                     }
                 )
