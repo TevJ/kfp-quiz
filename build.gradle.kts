@@ -21,18 +21,18 @@ dependencies {
     implementation("io.arrow-kt:arrow-fx-coroutines")
     implementation("io.arrow-kt:arrow-fx-stm")
 
-    val http4kVersion = "4.39.0.0"
-    implementation("org.http4k:http4k-client-jetty:${http4kVersion}")
-    implementation("org.http4k:http4k-core:${http4kVersion}")
-    implementation("org.http4k:http4k-contract:${http4kVersion}")
-    implementation("org.http4k:http4k-format-kotlinx-serialization:${http4kVersion}")
-    implementation("org.http4k:http4k-format-jackson:${http4kVersion}")
-    implementation("org.http4k:http4k-server-jetty:${http4kVersion}")
+    implementation(platform("org.http4k:http4k-bom:4.40.2.0"))
+    implementation("org.http4k:http4k-client-jetty")
+    implementation("org.http4k:http4k-core")
+    implementation("org.http4k:http4k-contract")
+    implementation("org.http4k:http4k-format-kotlinx-serialization")
+    implementation("org.http4k:http4k-format-jackson")
+    implementation("org.http4k:http4k-server-jetty")
 
-    val exposedVersion = "0.40.1"
-    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
-    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation(platform("org.jetbrains.exposed:exposed-bom:0.40.1"))
+    implementation("org.jetbrains.exposed:exposed-core")
+    implementation("org.jetbrains.exposed:exposed-dao")
+    implementation("org.jetbrains.exposed:exposed-jdbc")
 
     implementation("org.mindrot:jbcrypt:0.4")
 
