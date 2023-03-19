@@ -1,15 +1,12 @@
 package com.techtev.quiz
 
 import arrow.core.NonEmptyList
-import org.http4k.core.Body
-import org.http4k.core.ContentType.Companion.TEXT_PLAIN
 import org.http4k.core.Response
 import org.http4k.core.Status.Companion.BAD_REQUEST
 import org.http4k.core.Status.Companion.INTERNAL_SERVER_ERROR
 import org.http4k.core.Status.Companion.NOT_FOUND
 import org.http4k.core.with
 import org.http4k.lens.BiDiBodyLens
-import org.http4k.lens.string
 
 sealed interface DomainError
 
@@ -43,20 +40,20 @@ data class InvalidEmail(val emailAttempt: String) : FieldValidationFailure {
 
 fun DomainError.toResponse(errorLens: BiDiBodyLens<ErrorResponse>): Response =
     when (this) {
-        is IncorrectFields ->
-            Response(BAD_REQUEST)
-                .with(errorLens of ErrorResponse(this.failures.map { it.message }))
+        is IncorrectFields -> Response(BAD_REQUEST)
+            .with(errorLens of ErrorResponse(failures.map { it.message }))
+
         is PersistenceError -> {
             when (this) {
-                is RetrievalError, is InsertionError ->
-                    Response(INTERNAL_SERVER_ERROR)
-                        .with(Body.string(TEXT_PLAIN).toLens() of this.e.message.orEmpty())
+                is RetrievalError, is InsertionError -> Response(INTERNAL_SERVER_ERROR)
+                    .with(errorLens of ErrorResponse(listOf(e.message.orEmpty())))
             }
         }
-        is AnsweredQuizDoesNotExist ->
-            Response(NOT_FOUND)
-                .with(Body.string(TEXT_PLAIN).toLens() of this.message)
-        is UserAlreadyExists ->
-            Response(BAD_REQUEST)
-                .with(Body.string(TEXT_PLAIN).toLens() of this.message)
+
+        is AnsweredQuizDoesNotExist -> Response(NOT_FOUND)
+            .with(errorLens of ErrorResponse(listOf(message)))
+
+        is UserAlreadyExists -> Response(BAD_REQUEST)
+            .with(errorLens of ErrorResponse(listOf(message)))
+
     }
