@@ -4,9 +4,18 @@ import kotlinx.serialization.Serializable
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.div
 import org.http4k.contract.meta
-import org.http4k.core.*
+import org.http4k.core.Body
+import org.http4k.core.Credentials
+import org.http4k.core.HttpHandler
+import org.http4k.core.Method
+import org.http4k.core.Request
+import org.http4k.core.Response
+import org.http4k.core.Status
+import org.http4k.core.with
 import org.http4k.format.KotlinxSerialization.auto
-import org.http4k.lens.*
+import org.http4k.lens.Path
+import org.http4k.lens.RequestContextLens
+import org.http4k.lens.long
 
 @Serializable
 data class QuizRequest(
@@ -90,12 +99,12 @@ fun getQuizRoute(quizService: QuizService): ContractRoute {
     val quizResponseBody = Body.auto<QuizResponse>().toLens()
     val quizErrorBody = Body.auto<ErrorResponse>().toLens()
 
-    val spec = "/quiz" / Path.long().of("id", "Id of quiz to get") meta {
+    val spec = "/quiz" / Path.long().map(::QuizId).of("id", "Id of quiz to get") meta {
         summary = "Gets a quiz"
         returning(Status.OK, quizResponseBody to quizExampleResponse(quizExampleRequest()))
     } bindContract Method.GET
 
-    fun getQuiz(id: Long): HttpHandler = { _ ->
+    fun getQuiz(id: QuizId): HttpHandler = { _ ->
         quizService.getQuiz(id)
             .fold(
                 { e -> e.toResponse(quizErrorBody) },
@@ -114,13 +123,13 @@ fun answerQuizRoute(quizService: QuizService): ContractRoute {
     val answerQuizResponseBody = Body.auto<AnswerQuizResponse>().toLens()
     val quizErrorBody = Body.auto<ErrorResponse>().toLens()
 
-    val spec = "/quiz" / Path.long().of("id", "Id of quiz to answer") / "answer" meta {
+    val spec = "/quiz" / Path.long().map(::QuizId).of("id", "Id of quiz to answer") / "answer" meta {
         summary = "Answer a quiz"
         receiving(answerQuizRequestBody to answerQuizExampleRequest())
         returning(Status.OK, answerQuizResponseBody to answerQuizExampleResponse())
     } bindContract Method.POST
 
-    val answerQuiz: (Long, String) -> HttpHandler = { id: Long, _ ->
+    val answerQuiz: (QuizId, String) -> HttpHandler = { id: QuizId, _ ->
         { request: Request ->
             val receivedAnswers: AnswerQuizRequest = answerQuizRequestBody(request)
             quizService.answerQuiz(id, receivedAnswers.answers)

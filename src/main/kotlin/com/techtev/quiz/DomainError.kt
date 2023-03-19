@@ -1,7 +1,11 @@
 package com.techtev.quiz
 
 import arrow.core.NonEmptyList
-import org.http4k.core.*
+import org.http4k.core.Body
+import org.http4k.core.ContentType
+import org.http4k.core.Response
+import org.http4k.core.Status
+import org.http4k.core.with
 import org.http4k.lens.BiDiBodyLens
 import org.http4k.lens.string
 
@@ -12,12 +16,12 @@ data class IncorrectFields(val failures: NonEmptyList<FieldValidationFailure>) :
         "Issues with the following fields: ${failures.joinToString()}"
 }
 
-data class UserAlreadyExists(val email: String) : DomainError {
+data class UserAlreadyExists(val email: Email) : DomainError {
     val message: String =
         "A user with email $email already exists"
 }
 
-data class AnsweredQuizDoesNotExist(val id: Long) : DomainError {
+data class AnsweredQuizDoesNotExist(val id: QuizId) : DomainError {
     val message: String =
         "The quiz you have attempted to answer does not exist, ID: $id"
 }

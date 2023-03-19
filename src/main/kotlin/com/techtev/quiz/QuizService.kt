@@ -1,8 +1,9 @@
 package com.techtev.quiz
 
-import arrow.core.*
+import arrow.core.Either
 import arrow.core.raise.either
 import arrow.core.raise.ensureNotNull
+import arrow.core.toEitherNel
 
 interface QuizService {
     fun saveQuiz(
@@ -13,9 +14,9 @@ interface QuizService {
         userEmail: String
     ): Either<DomainError, QuizId>
 
-    fun getQuiz(id: Long): Either<PersistenceError, Quiz?>
+    fun getQuiz(id: QuizId): Either<PersistenceError, Quiz?>
 
-    fun answerQuiz(id: Long, answerIndexes: List<Int>): Either<DomainError, AnswerResult>
+    fun answerQuiz(id: QuizId, answerIndexes: List<Int>): Either<DomainError, AnswerResult>
 }
 
 fun quizService(
@@ -42,10 +43,10 @@ fun quizService(
         quizRepository.createNewQuiz(validatedQuiz).bind()
     }
 
-    override fun getQuiz(id: Long): Either<PersistenceError, Quiz?> =
-        quizRepository.getQuiz(QuizId(id))
+    override fun getQuiz(id: QuizId): Either<PersistenceError, Quiz?> =
+        quizRepository.getQuiz(id)
 
-    override fun answerQuiz(id: Long, answerIndexes: List<Int>): Either<DomainError, AnswerResult> =
+    override fun answerQuiz(id: QuizId, answerIndexes: List<Int>): Either<DomainError, AnswerResult> =
         either {
             val quiz = ensureNotNull(getQuiz(id).bind()) { AnsweredQuizDoesNotExist(id) }
             AnswerResult(quiz.answer.map { it.value }.toSet() == answerIndexes.toSet())
