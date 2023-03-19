@@ -1,6 +1,8 @@
 package com.techtev.quiz
 
 import arrow.core.*
+import arrow.core.raise.either
+import arrow.core.raise.ensure
 
 @JvmInline
 value class QuizId(val value: Long)
@@ -12,10 +14,11 @@ value class AnswerResult(val isCorrect: Boolean)
 value class AnswerIndex(val value: Int) {
     companion object {
         private fun from(value: Int, options: List<String>): Either<FieldValidationFailure, AnswerIndex> =
-            if (value in options.indices) AnswerIndex(value).right() else AnswerIndexOutOfBounds(
-                value,
-                options.lastIndex
-            ).left()
+            either {
+                ensure(value in options.indices) { AnswerIndexOutOfBounds(value, options.lastIndex) }
+                AnswerIndex(value)
+            }
+
         fun from(values: List<Int>, options: List<String>): Either<NonEmptyList<FieldValidationFailure>, List<AnswerIndex>> =
             values.mapOrAccumulate { answer ->
                 from(answer, options).bind()
@@ -27,7 +30,10 @@ value class AnswerIndex(val value: Int) {
 value class Title constructor(val value: String) {
     companion object {
         fun from(value: String): Either<FieldValidationFailure, Title> =
-            if (value.isNotEmpty()) Title(value).right() else Empty("title").left()
+            either {
+                ensure(value.isNotEmpty()) { Empty("title") }
+                Title(value)
+            }
     }
 }
 
@@ -35,7 +41,10 @@ value class Title constructor(val value: String) {
 value class Text constructor(val value: String) {
     companion object {
         fun from(value: String): Either<FieldValidationFailure, Text> =
-            if (value.isNotEmpty()) Text(value).right() else Empty("text").left()
+            either {
+                ensure(value.isNotEmpty()) { Empty("text") }
+                Text(value)
+            }
     }
 }
 
@@ -43,7 +52,11 @@ value class Text constructor(val value: String) {
 value class Option constructor(val value: String) {
     companion object {
         private fun from(value: String, index: Int): Either<FieldValidationFailure, Option> =
-            if (value.isNotEmpty()) Option(value).right() else Empty("option #$index").left()
+            either {
+                ensure(value.isNotEmpty()) { Empty("option #$index") }
+                Option(value)
+            }
+
         fun from(values: List<String>): Either<NonEmptyList<FieldValidationFailure>, List<Option>> =
             values.mapOrAccumulate { s: String ->
                 from(s, values.indexOf(s)).bind()
